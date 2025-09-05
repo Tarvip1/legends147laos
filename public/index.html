@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TOTTI911 — หน้าเชื่อมต่อ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="card">
+    <h1 id="title">กำลังตรวจสอบเซิร์ฟเวอร์…</h1>
+    <p id="subtitle">ถ้าลิงก์แรกเข้าไม่ได้ 5 วินาที จะข้ามไปลิงก์ถัดไป</p>
+    <div id="status"></div>
+    <div class="actions">
+      <button id="skip">ข้ามไปลิงก์ถัดไป</button>
+      <button id="retry" style="display:none;">ลองใหม่อีกครั้ง</button>
+    </div>
+  </div>
+
+  <script>
+    async function fetchHost() {
+      try {
+        const res = await fetch("/.netlify/functions/getHost");
+        const data = await res.json();
+        return data.urls;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    const statusEl = document.getElementById('status');
+    const btnSkip = document.getElementById('skip');
+    const btnRetry = document.getElementById('retry');
+
+    let urls = [];
+    let current = 0;
+
+    async function start() {
+      urls = await fetchHost();
+      if(urls.length === 0){
+        statusEl.innerText = "❌ ไม่พบลิงก์เซิร์ฟเวอร์";
+        btnRetry.style.display = "inline-block";
+        return;
+      }
+      tryLink(current);
+    }
+
+    function log(msg){ 
+      const div = document.createElement('div');
+      div.innerHTML = msg;
+      statusEl.appendChild(div);
+    }
+
+    function tryLink(i){
+      if(i >= urls.length){
+        log("❌ ไม่พบลิงก์ที่พร้อมใช้งาน");
+        btnRetry.style.display = "inline-block";
+        btnSkip.style.display = "none";
+        return;
+      }
+      const url = urls[i];
+      log(`⏳ กำลังลองลิงก์ ${i+1}... <a href="${url}" target="_blank">(เปิดเอง)</a>`);
+
+      const timer = setTimeout(()=>{ tryLink(i+1); }, 5000);
+
+      btnSkip.onclick = () => {
+        clearTimeout(timer);
+        tryLink(i+1);
+      };
+    }
+
+    btnRetry.onclick = () => {
+      statusEl.innerHTML = "";
+      current = 0;
+      start();
+    };
+
+    start();
+  </script>
+</body>
+</html>
